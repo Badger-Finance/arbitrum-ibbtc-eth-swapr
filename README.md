@@ -1,10 +1,10 @@
-# Arbitrum Swapr WBTC/WETH Staking Strat
+# Arbitrum Swapr BADGER/WETH Staking Strat
 
-Want is WBTC/WETH swprLP
+Want is BADGER/WETH swprLP
 Earn Swapr
-Autocompounds 100%
+50% autocompounding, 50% WETH/SWAPR helper vault tokens
 
-Some work was taken from: https://github.com/shuklaayush/WBTC-WETH-SLP-Arbitrum-Strategy
+Essentially the same as https://github.com/GalloDaSballo/arbitrum-wbtc-eth-swapr
 
 ## NOTE: TO TEST
 

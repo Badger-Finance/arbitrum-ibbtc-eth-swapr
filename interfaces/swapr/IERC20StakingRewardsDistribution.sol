@@ -18,4 +18,7 @@ interface IERC20StakingRewardsDistribution {
 
     /// @dev Withdraw all and get rewards too
     function exit(address _recipient) external;
+
+    /// @dev Timestamp when staking is enabled
+    function startingTimestamp() external view returns (uint256);
 }

@@ -1,5 +1,6 @@
 from brownie import (
     accounts,
+    chain,
     interface,
     Controller,
     SettV3,
@@ -84,24 +85,28 @@ def deployed():
     WETH_DEP = interface.IWETH(strategy.WETH())
     WETH_DEP.deposit({"from": deployer, "value": 5000000000000000000})
 
-    ## Get some wBTC
+    ## Get some BADGER
+    BADGER = interface.IERC20(strategy.BADGER())
+    badger_whale = "0xF6BC36280F32398A031A7294e81131aEE787D178"
+    BADGER.transfer(deployer, 1000e18, {"from": badger_whale})
+
     router = interface.IUniswapRouterV2(strategy.DX_SWAP_ROUTER())
-    WBTC = interface.IERC20(strategy.WBTC())
-    router.swapExactETHForTokens(
-        0,  ## Mint out
-        [WETH, WBTC],
-        deployer,
-        9999999999999999,
-        {"from": deployer, "value": 5000000000000000000},
-    )
-    ## TODO: LP wBTC / ETH on swapr
+    # router.swapExactETHForTokens(
+    #     0,  ## Mint out
+    #     [WETH, BADGER],
+    #     deployer,
+    #     9999999999999999,
+    #     {"from": deployer, "value": 5000000000000000000},
+    # )
+
+    # Get want - BADGER/WETH LP
     WETH.approve(router, WETH.balanceOf(deployer), {"from": deployer})
-    WBTC.approve(router, WBTC.balanceOf(deployer), {"from": deployer})
+    BADGER.approve(router, BADGER.balanceOf(deployer), {"from": deployer})
     router.addLiquidity(
         WETH,
-        WBTC,
+        BADGER,
         WETH.balanceOf(deployer),
-        WBTC.balanceOf(deployer),
+        BADGER.balanceOf(deployer),
         0,
         0,
         deployer,
@@ -113,6 +118,13 @@ def deployed():
     helper_vault = SettV3.at(strategy.HELPER_VAULT())
     gov = accounts.at(helper_vault.governance(), force=True)
     helper_vault.approveContractAccess(strategy, {"from": gov})
+
+    # Sleep till staking starts
+    staking_contract = interface.IERC20StakingRewardsDistribution(
+        strategy.stakingContract()
+    )
+    time_left = max(0, staking_contract.startingTimestamp() - chain.time())
+    chain.sleep(time_left)
 
     return DotMap(
         deployer=deployer,

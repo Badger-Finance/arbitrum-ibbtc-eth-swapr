@@ -13,9 +13,7 @@ import "../interfaces/badger/IController.sol";
 import "../interfaces/badger/ISett.sol";
 
 import {IUniswapRouterV2} from "../interfaces/uniswap/IUniswapRouterV2.sol";
-import {
-    IERC20StakingRewardsDistribution
-} from "../interfaces/swapr/IERC20StakingRewardsDistribution.sol";
+import {IERC20StakingRewardsDistribution} from "../interfaces/swapr/IERC20StakingRewardsDistribution.sol";
 
 import {BaseStrategy} from "../deps/BaseStrategy.sol";
 
@@ -28,7 +26,7 @@ contract MyStrategy is BaseStrategy {
     address public lpComponent; // Token we provide liquidity with
     address public reward; // Token we farm and swap to want / lpComponent
 
-    address public constant WBTC = 0x2f2a2543B76A4166549F7aaB2e75Bef0aefC5B0f;
+    address public constant BADGER = 0xBfa641051Ba0a0Ad1b0AcF549a89536A0D76472E;
     address public constant WETH = 0x82aF49447D8a07e3bd95BD0d56f35241523fBab1;
 
     // LP component we create when depositing weth/swapr, used for deposits to helper vault
@@ -85,7 +83,8 @@ contract MyStrategy is BaseStrategy {
         withdrawalFee = _feeConfig[2];
 
         /// @notice initial staking contract at time of development
-        stakingContract = 0x79ba8b76F61Db3e7D994f7E384ba8f7870A043b7;
+        /// TODO/NOTE: CHANGE BEFORE FINAL DEPLOYMENT
+        stakingContract = 0xc18115D95299457996F98aB2f7e068d30609023F;
 
         /// @dev do one off approvals here
         // Approvals for swaps and LP
@@ -93,7 +92,7 @@ contract MyStrategy is BaseStrategy {
             address(DX_SWAP_ROUTER),
             type(uint256).max
         );
-        IERC20Upgradeable(WBTC).safeApprove(
+        IERC20Upgradeable(BADGER).safeApprove(
             address(DX_SWAP_ROUTER),
             type(uint256).max
         );
@@ -133,10 +132,10 @@ contract MyStrategy is BaseStrategy {
         // Add approvals to new stakingContract
         IERC20Upgradeable(want).safeApprove(stakingContract, type(uint256).max);
 
-        uint256 balanceOfWant = balanceOfWant();
-        if (balanceOfWant > 0) {
+        uint256 wantBalance = balanceOfWant();
+        if (wantBalance > 0) {
             // Deposit all in new stakingContract
-            _deposit(balanceOfWant);
+            _deposit(wantBalance);
         }
     }
 
@@ -151,7 +150,7 @@ contract MyStrategy is BaseStrategy {
 
     // @dev Specify the name of the strategy
     function getName() external pure override returns (string memory) {
-        return "Arbitrum-swapr-WBTC-WETH";
+        return "Arbitrum-swapr-BADGER-WETH";
     }
 
     // @dev Specify the version of the Strategy, for upgrades
@@ -184,7 +183,7 @@ contract MyStrategy is BaseStrategy {
         protectedTokens[1] = lpComponent;
         protectedTokens[2] = reward;
         protectedTokens[3] = stakingContract; //NOTE: may not be needed, but doesn't hurt to have
-        protectedTokens[4] = WBTC;
+        protectedTokens[4] = BADGER;
         protectedTokens[5] = WETH;
         return protectedTokens;
     }
@@ -230,12 +229,13 @@ contract MyStrategy is BaseStrategy {
         returns (uint256)
     {
         // Due to rounding errors on the Controller, the amount may be slightly higher than the available amount in edge cases.
-        if (balanceOfWant() < _amount) {
+        uint256 wantBalance = balanceOfWant();
+        if (wantBalance < _amount) {
             uint256 toWithdraw = _amount.sub(balanceOfWant());
-
-            if (balanceOfPool() < toWithdraw) {
+            uint256 poolBalance = balanceOfPool();
+            if (poolBalance < toWithdraw) {
                 IERC20StakingRewardsDistribution(stakingContract).withdraw(
-                    balanceOfPool()
+                    poolBalance
                 );
             } else {
                 IERC20StakingRewardsDistribution(stakingContract).withdraw(
@@ -268,17 +268,20 @@ contract MyStrategy is BaseStrategy {
         /// @notice Take performance fee on want harvested
         _processRewardsFees(harvested, want);
 
-        uint256 toEmit =
-            IERC20Upgradeable(WETH_SWAPR_LP).balanceOf(address(this));
+        uint256 toEmit = IERC20Upgradeable(WETH_SWAPR_LP).balanceOf(
+            address(this)
+        );
         if (toEmit > 0) {
             // Performance fee to strategist
-            uint256 toStrategist =
-                toEmit.mul(performanceFeeStrategist).div(MAX_FEE);
+            uint256 toStrategist = toEmit.mul(performanceFeeStrategist).div(
+                MAX_FEE
+            );
             HELPER_VAULT.depositFor(strategist, toStrategist);
 
             // Performance fee to governance
-            uint256 toGovernance =
-                toEmit.mul(performanceFeeGovernance).div(MAX_FEE);
+            uint256 toGovernance = toEmit.mul(performanceFeeGovernance).div(
+                MAX_FEE
+            );
             HELPER_VAULT.depositFor(
                 IController(controller).rewards(),
                 toGovernance
@@ -286,8 +289,9 @@ contract MyStrategy is BaseStrategy {
 
             // NOTE: Would be better to take fees as HELPER_VAULT as they auto-compound for treasury
             uint256 treeBefore = HELPER_VAULT.balanceOf(badgerTree);
-            uint256 toTree =
-                IERC20Upgradeable(WETH_SWAPR_LP).balanceOf(address(this));
+            uint256 toTree = IERC20Upgradeable(WETH_SWAPR_LP).balanceOf(
+                address(this)
+            );
             HELPER_VAULT.depositFor(badgerTree, toTree);
             uint256 treeAfter = HELPER_VAULT.balanceOf(badgerTree);
             uint256 emitted = treeAfter.sub(treeBefore);
@@ -331,7 +335,7 @@ contract MyStrategy is BaseStrategy {
         DX_SWAP_ROUTER.addLiquidity(
             reward,
             WETH,
-            IERC20Upgradeable(reward).balanceOf(address(this)),
+            IERC20Upgradeable(reward).balanceOf(address(this)), // 25% of initial reward value
             IERC20Upgradeable(WETH).balanceOf(address(this)),
             0,
             0,
@@ -340,9 +344,9 @@ contract MyStrategy is BaseStrategy {
         );
 
         // Of the remaining (it's going to be 50% of initial reward value)
-        // Swap 50% of WETH to wBTC
+        // Swap 50% of WETH to BADGER
         path[0] = WETH;
-        path[1] = WBTC;
+        path[1] = BADGER;
         DX_SWAP_ROUTER.swapExactTokensForTokens(
             IERC20Upgradeable(WETH).balanceOf(address(this)).mul(50).div(100),
             0,
@@ -351,11 +355,11 @@ contract MyStrategy is BaseStrategy {
             now
         );
 
-        // Now that we have WBTC and WETH, lp for more want
+        // Now that we have BADGER and WETH, lp for more want
         DX_SWAP_ROUTER.addLiquidity(
-            WBTC,
+            BADGER,
             WETH,
-            IERC20Upgradeable(WBTC).balanceOf(address(this)),
+            IERC20Upgradeable(BADGER).balanceOf(address(this)),
             IERC20Upgradeable(WETH).balanceOf(address(this)),
             0,
             0,
@@ -367,10 +371,10 @@ contract MyStrategy is BaseStrategy {
     /// @dev If any want is uninvested, let's invest here
     function tend() external whenNotPaused {
         _onlyAuthorizedActors();
-        uint256 balanceOfWant = balanceOfWant();
-        if (balanceOfWant > 0) {
+        uint256 wantBalance = balanceOfWant();
+        if (wantBalance > 0) {
             // NOTE: This will revert if staking has ended, just change to next staking contract
-            _deposit(balanceOfWant);
+            _deposit(wantBalance);
         }
     }
 

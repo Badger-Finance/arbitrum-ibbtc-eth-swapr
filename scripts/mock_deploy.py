@@ -33,7 +33,7 @@ def deploy():
     controller = Controller.deploy({"from": deployer})
     controller.initialize(BADGER_DEV_MULTISIG, strategist, keeper, BADGER_DEV_MULTISIG)
 
-    sett = SettV3.deploy({"from": deployer})
+    sett = SettV4.deploy({"from": deployer})
     sett.initialize(
         WANT,
         controller,

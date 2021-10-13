@@ -34,9 +34,12 @@ import "interfaces/yearn/BadgerGuestlistApi.sol";
     V1.3
     * Add guest list functionality
     * All deposits can be optionally gated by external guestList approval logic on set guestList contract
+
+    V1.4
+    * Add depositFor() to deposit on the half of other users. That user will then be blockLocked.
 */
 
-contract SettV3 is
+contract SettV4 is
     ERC20Upgradeable,
     SettAccessControlDefended,
     PausableUpgradeable
@@ -133,7 +136,7 @@ contract SettV3 is
     /// ===== View Functions =====
 
     function version() public view returns (string memory) {
-        return "1.3";
+        return "1.4";
     }
 
     function getPricePerFullShare() public view virtual returns (uint256) {
@@ -203,6 +206,32 @@ contract SettV3 is
 
         _lockForBlock(msg.sender);
         _depositWithAuthorization(token.balanceOf(msg.sender), proof);
+    }
+
+    /// @notice Deposit assets into the Sett, and return corresponding shares to the user
+    /// @notice Only callable by EOA accounts that pass the _defend() check
+    function depositFor(address _recipient, uint256 _amount)
+        public
+        whenNotPaused
+    {
+        _defend();
+        _blockLocked();
+
+        _lockForBlock(_recipient);
+        _depositForWithAuthorization(_recipient, _amount, new bytes32[](0));
+    }
+
+    /// @notice Deposit variant with proof for merkle guest list
+    function depositFor(
+        address _recipient,
+        uint256 _amount,
+        bytes32[] memory proof
+    ) public whenNotPaused {
+        _defend();
+        _blockLocked();
+
+        _lockForBlock(_recipient);
+        _depositForWithAuthorization(_recipient, _amount, proof);
     }
 
     /// @notice No rebalance implementation for lower fees and faster swaps
@@ -299,7 +328,12 @@ contract SettV3 is
 
     /// @dev Calculate the number of shares to issue for a given deposit
     /// @dev This is based on the realized value of underlying assets between Sett & associated Strategy
-    function _deposit(uint256 _amount) internal virtual {
+    // @dev deposit for msg.sender
+    function _deposit(uint256 _amount) internal {
+        _depositFor(msg.sender, _amount);
+    }
+
+    function _depositFor(address recipient, uint256 _amount) internal virtual {
         uint256 _pool = balance();
         uint256 _before = token.balanceOf(address(this));
         token.safeTransferFrom(msg.sender, address(this), _amount);
@@ -311,7 +345,7 @@ contract SettV3 is
         } else {
             shares = (_amount.mul(totalSupply())).div(_pool);
         }
-        _mint(msg.sender, shares);
+        _mint(recipient, shares);
     }
 
     function _depositWithAuthorization(uint256 _amount, bytes32[] memory proof)
@@ -325,6 +359,20 @@ contract SettV3 is
             );
         }
         _deposit(_amount);
+    }
+
+    function _depositForWithAuthorization(
+        address _recipient,
+        uint256 _amount,
+        bytes32[] memory proof
+    ) internal virtual {
+        if (address(guestList) != address(0)) {
+            require(
+                guestList.authorized(_recipient, _amount, proof),
+                "guest-list-authorization"
+            );
+        }
+        _depositFor(_recipient, _amount);
     }
 
     // No rebalance implementation for lower fees and faster swaps

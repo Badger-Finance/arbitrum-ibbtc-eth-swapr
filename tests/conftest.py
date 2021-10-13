@@ -3,7 +3,7 @@ from brownie import (
     chain,
     interface,
     Controller,
-    SettV3,
+    SettV4,
     MyStrategy,
 )
 from config import (
@@ -34,7 +34,7 @@ def deployed():
     controller = Controller.deploy({"from": deployer})
     controller.initialize(BADGER_DEV_MULTISIG, strategist, keeper, BADGER_DEV_MULTISIG)
 
-    sett = SettV3.deploy({"from": deployer})
+    sett = SettV4.deploy({"from": deployer})
     sett.initialize(
         WANT,
         controller,
@@ -115,7 +115,7 @@ def deployed():
     )
 
     ## Set up necessary for this vault to work
-    helper_vault = SettV3.at(strategy.HELPER_VAULT())
+    helper_vault = SettV4.at(strategy.HELPER_VAULT())
     gov = accounts.at(helper_vault.governance(), force=True)
     helper_vault.approveContractAccess(strategy, {"from": gov})
 

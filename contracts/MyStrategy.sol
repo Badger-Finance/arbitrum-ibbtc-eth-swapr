@@ -47,7 +47,6 @@ contract MyStrategy is BaseStrategy {
 
     // Can be changed by governance via setStakingContract
     address public stakingContract; // NOTE: Set in initialize as we can't set vars here
-    bool public autocompoundOnWithdrawAll; // Should we swap rewards to want in withdrawAll? // False by default
 
     // Used to signal to the Badger Tree that rewards where sent to it
     event TreeDistribution(
@@ -84,7 +83,7 @@ contract MyStrategy is BaseStrategy {
 
         /// @notice initial staking contract at time of development
         /// TODO/NOTE: CHANGE BEFORE FINAL DEPLOYMENT
-        stakingContract = 0xc18115D95299457996F98aB2f7e068d30609023F;
+        stakingContract = 0x42253C7E9B59a9d6aC0e2f971927a2b89Ed57657;
 
         /// @dev do one off approvals here
         // Approvals for swaps and LP
@@ -137,13 +136,6 @@ contract MyStrategy is BaseStrategy {
             // Deposit all in new stakingContract
             _deposit(wantBalance);
         }
-    }
-
-    function setAutocompoundOnWithdrawAll(bool newAutocompoundOnWithdrawAll)
-        public
-    {
-        _onlyGovernance();
-        autocompoundOnWithdrawAll = newAutocompoundOnWithdrawAll;
     }
 
     /// ===== View Functions =====
@@ -214,12 +206,6 @@ contract MyStrategy is BaseStrategy {
     function _withdrawAll() internal override {
         // Withdraws all and claims rewards
         IERC20StakingRewardsDistribution(stakingContract).exit(address(this));
-
-        // False by default
-        if (autocompoundOnWithdrawAll) {
-            // Swap rewards into want
-            _swapRewardsToWantAndLP();
-        }
     }
 
     /// @dev withdraw the specified amount of want, liquidate from lpComponent to want, paying off any necessary debt for the conversion
@@ -248,7 +234,7 @@ contract MyStrategy is BaseStrategy {
     }
 
     /// @dev Harvest from strategy mechanics, realizing increase in underlying position
-    function harvest() external whenNotPaused returns (uint256 harvested) {
+    function harvest() external whenNotPaused returns (uint256) {
         _onlyAuthorizedActors();
 
         uint256 _before = IERC20Upgradeable(want).balanceOf(address(this));
@@ -258,15 +244,8 @@ contract MyStrategy is BaseStrategy {
             address(this)
         );
 
-        // Swap to want
-        _swapRewardsToWantAndLP();
-
-        harvested = IERC20Upgradeable(want).balanceOf(address(this)).sub(
-            _before
-        );
-
-        /// @notice Take performance fee on want harvested
-        _processRewardsFees(harvested, want);
+        // Swap to LP
+        _swapRewardsToLP();
 
         uint256 toEmit = IERC20Upgradeable(WETH_SWAPR_LP).balanceOf(
             address(this)
@@ -287,7 +266,7 @@ contract MyStrategy is BaseStrategy {
                 toGovernance
             );
 
-            // NOTE: Would be better to take fees as HELPER_VAULT as they auto-compound for treasury
+            // NOTE: Would be better to take fees as HELPER_VAULT as they autocompound for treasury
             uint256 treeBefore = HELPER_VAULT.balanceOf(badgerTree);
             uint256 toTree = IERC20Upgradeable(WETH_SWAPR_LP).balanceOf(
                 address(this)
@@ -306,25 +285,26 @@ contract MyStrategy is BaseStrategy {
         }
 
         /// @dev Harvest event that every strategy MUST have, see BaseStrategy
-        emit Harvest(harvested, block.number);
+        emit Harvest(0, block.number);
 
         /// @dev Harvest must return the amount of want increased
-        return harvested;
+        return 0;
     }
 
-    function _swapRewardsToWantAndLP() internal {
+    function _swapRewardsToLP() internal {
         uint256 toSwap = IERC20Upgradeable(reward).balanceOf(address(this));
 
         if (toSwap == 0) {
             return;
         }
+
         address[] memory path = new address[](2);
         path[0] = reward; // Swapr
         path[1] = WETH;
 
-        // Swap 75% swapr for WETH
+        // Swap 50% swapr for WETH
         DX_SWAP_ROUTER.swapExactTokensForTokens(
-            toSwap.mul(75).div(100),
+            toSwap.mul(50).div(100),
             0,
             path,
             address(this),
@@ -335,31 +315,7 @@ contract MyStrategy is BaseStrategy {
         DX_SWAP_ROUTER.addLiquidity(
             reward,
             WETH,
-            IERC20Upgradeable(reward).balanceOf(address(this)), // 25% of initial reward value
-            IERC20Upgradeable(WETH).balanceOf(address(this)),
-            0,
-            0,
-            address(this),
-            now
-        );
-
-        // Of the remaining (it's going to be 50% of initial reward value)
-        // Swap 50% of WETH to BADGER
-        path[0] = WETH;
-        path[1] = BADGER;
-        DX_SWAP_ROUTER.swapExactTokensForTokens(
-            IERC20Upgradeable(WETH).balanceOf(address(this)).mul(50).div(100),
-            0,
-            path,
-            address(this),
-            now
-        );
-
-        // Now that we have BADGER and WETH, lp for more want
-        DX_SWAP_ROUTER.addLiquidity(
-            BADGER,
-            WETH,
-            IERC20Upgradeable(BADGER).balanceOf(address(this)),
+            IERC20Upgradeable(reward).balanceOf(address(this)), // 50% of initial reward value
             IERC20Upgradeable(WETH).balanceOf(address(this)),
             0,
             0,

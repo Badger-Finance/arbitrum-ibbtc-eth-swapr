@@ -87,7 +87,7 @@ def deployed():
 
     ## Get some BADGER
     BADGER = interface.IERC20(strategy.BADGER())
-    badger_whale = "0xF6BC36280F32398A031A7294e81131aEE787D178"
+    badger_whale = "0xED9376094Ce37635827E0Cfddc23bFbb6D788469"
     BADGER.transfer(deployer, 1000e18, {"from": badger_whale})
 
     router = interface.IUniswapRouterV2(strategy.DX_SWAP_ROUTER())

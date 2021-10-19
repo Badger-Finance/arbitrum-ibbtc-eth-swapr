@@ -237,8 +237,6 @@ contract MyStrategy is BaseStrategy {
     function harvest() external whenNotPaused returns (uint256) {
         _onlyAuthorizedActors();
 
-        uint256 _before = IERC20Upgradeable(want).balanceOf(address(this));
-
         // Claim rewards
         IERC20StakingRewardsDistribution(stakingContract).claimAll(
             address(this)

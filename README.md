@@ -2,9 +2,9 @@
 
 Want is BADGER/WETH swprLP
 Earn Swapr
-50% autocompounding, 50% WETH/SWAPR helper vault tokens
+100% rewards emitted as WETH/SWAPR helper vault tokens
 
-Essentially the same as https://github.com/GalloDaSballo/arbitrum-wbtc-eth-swapr
+Pretty similar to https://github.com/GalloDaSballo/arbitrum-wbtc-eth-swapr
 
 ## NOTE: TO TEST
 

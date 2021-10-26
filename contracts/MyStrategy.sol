@@ -217,7 +217,7 @@ contract MyStrategy is BaseStrategy {
         // Due to rounding errors on the Controller, the amount may be slightly higher than the available amount in edge cases.
         uint256 wantBalance = balanceOfWant();
         if (wantBalance < _amount) {
-            uint256 toWithdraw = _amount.sub(balanceOfWant());
+            uint256 toWithdraw = _amount.sub(wantBalance);
             uint256 poolBalance = balanceOfPool();
             if (poolBalance < toWithdraw) {
                 IERC20StakingRewardsDistribution(stakingContract).withdraw(

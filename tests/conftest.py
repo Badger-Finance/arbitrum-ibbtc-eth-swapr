@@ -85,28 +85,28 @@ def deployed():
     WETH_DEP = interface.IWETH(strategy.WETH())
     WETH_DEP.deposit({"from": deployer, "value": 5000000000000000000})
 
-    ## Get some BADGER
-    BADGER = interface.IERC20(strategy.BADGER())
-    badger_whale = "0xED9376094Ce37635827E0Cfddc23bFbb6D788469"
-    BADGER.transfer(deployer, 1000e18, {"from": badger_whale})
+    ## Get some IBBTC
+    IBBTC = interface.IERC20(strategy.IBBTC())
+    ibbtc_whale = "0x7c1D678685B9d2F65F1909b9f2E544786807d46C"
+    IBBTC.transfer(deployer, 0.0005e18, {"from": ibbtc_whale})
 
     router = interface.IUniswapRouterV2(strategy.DX_SWAP_ROUTER())
     # router.swapExactETHForTokens(
     #     0,  ## Mint out
-    #     [WETH, BADGER],
+    #     [WETH, IBBTC],
     #     deployer,
     #     9999999999999999,
     #     {"from": deployer, "value": 5000000000000000000},
     # )
 
-    # Get want - BADGER/WETH LP
+    # Get want - IBBTC/ETH LP
     WETH.approve(router, WETH.balanceOf(deployer), {"from": deployer})
-    BADGER.approve(router, BADGER.balanceOf(deployer), {"from": deployer})
+    IBBTC.approve(router, IBBTC.balanceOf(deployer), {"from": deployer})
     router.addLiquidity(
         WETH,
-        BADGER,
+        IBBTC,
         WETH.balanceOf(deployer),
-        BADGER.balanceOf(deployer),
+        IBBTC.balanceOf(deployer),
         0,
         0,
         deployer,

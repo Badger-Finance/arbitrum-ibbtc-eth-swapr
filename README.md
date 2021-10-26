@@ -1,6 +1,6 @@
-# Arbitrum Swapr BADGER/WETH Staking Strat
+# Arbitrum Swapr IBBTC/ETH Staking Strat
 
-Want is BADGER/WETH swprLP
+Want is IBBTC/ETH swprLP
 Earn Swapr
 100% rewards emitted as WETH/SWAPR helper vault tokens
 

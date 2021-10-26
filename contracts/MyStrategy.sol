@@ -26,7 +26,7 @@ contract MyStrategy is BaseStrategy {
     address public lpComponent; // Token we provide liquidity with
     address public reward; // Token we farm and swap to want / lpComponent
 
-    address public constant BADGER = 0xBfa641051Ba0a0Ad1b0AcF549a89536A0D76472E;
+    address public constant IBBTC = 0x9Ab3FD50FcAe73A1AEDa959468FD0D662c881b42;
     address public constant WETH = 0x82aF49447D8a07e3bd95BD0d56f35241523fBab1;
 
     // LP component we create when depositing weth/swapr, used for deposits to helper vault
@@ -83,7 +83,7 @@ contract MyStrategy is BaseStrategy {
 
         /// @notice initial staking contract at time of development
         /// TODO/NOTE: CHANGE BEFORE FINAL DEPLOYMENT
-        stakingContract = 0x42253C7E9B59a9d6aC0e2f971927a2b89Ed57657;
+        stakingContract = 0x70005b38b13E8978bb573562681F39fd142Fe121;
 
         /// @dev do one off approvals here
         // Approvals for swaps and LP
@@ -91,7 +91,7 @@ contract MyStrategy is BaseStrategy {
             address(DX_SWAP_ROUTER),
             type(uint256).max
         );
-        IERC20Upgradeable(BADGER).safeApprove(
+        IERC20Upgradeable(IBBTC).safeApprove(
             address(DX_SWAP_ROUTER),
             type(uint256).max
         );
@@ -142,7 +142,7 @@ contract MyStrategy is BaseStrategy {
 
     // @dev Specify the name of the strategy
     function getName() external pure override returns (string memory) {
-        return "Arbitrum-swapr-BADGER-WETH";
+        return "Arbitrum-swapr-IBBTC-WETH";
     }
 
     // @dev Specify the version of the Strategy, for upgrades
@@ -175,7 +175,7 @@ contract MyStrategy is BaseStrategy {
         protectedTokens[1] = lpComponent;
         protectedTokens[2] = reward;
         protectedTokens[3] = stakingContract; //NOTE: may not be needed, but doesn't hurt to have
-        protectedTokens[4] = BADGER;
+        protectedTokens[4] = IBBTC;
         protectedTokens[5] = WETH;
         return protectedTokens;
     }

@@ -34,8 +34,8 @@ def main():
     dev = connect_account()
 
     # Add deployed Strategy and Vault contracts here:
-    strategy = MyStrategy.at("0x43942cEae98CC7485B48a37fBB1aa5035e1c8B46")
-    vault = SettV4.at("0xaf9aB64F568149361ab670372b16661f4380e80B")
+    strategy = MyStrategy.at("0x4AeC063BB5322c9d4c1f46572f432aaE3b78b87c")
+    vault = SettV4.at("0x60129b2b762952dfe8b21f40ee8aa3b2a4623546")
 
     assert strategy.paused() == False
     assert vault.paused() == False
@@ -93,11 +93,11 @@ def set_parameters(dev, strategy, vault, governance, guardian, keeper, controlle
     if strategy.performanceFeeStrategist() != 1000:
         strategy.setPerformanceFeeStrategist(1000, {"from": dev})
         time.sleep(sleep_between_tx)
-    if strategy.withdrawalFee() != 50:
-        strategy.setWithdrawalFee(50, {"from": dev})
+    if strategy.withdrawalFee() != 10:
+        strategy.setWithdrawalFee(10, {"from": dev})
         time.sleep(sleep_between_tx)
 
-    console.print("[green]Fees existing or set at: [/green]", "1000, 1000, 50")
+    console.print("[green]Fees existing or set at: [/green]", "1000, 1000, 10")
 
     # Set permissioned accounts
     if strategy.keeper() != keeper:
@@ -147,7 +147,7 @@ def check_parameters(
 
     assert strategy.performanceFeeGovernance() == 1000
     assert strategy.performanceFeeStrategist() == 1000
-    assert strategy.withdrawalFee() == 50
+    assert strategy.withdrawalFee() == 10
 
     assert strategy.keeper() == keeper
     assert vault.keeper() == keeper

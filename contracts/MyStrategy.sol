@@ -82,7 +82,6 @@ contract MyStrategy is BaseStrategy {
         withdrawalFee = _feeConfig[2];
 
         /// @notice initial staking contract at time of development
-        /// TODO/NOTE: CHANGE BEFORE FINAL DEPLOYMENT
         stakingContract = 0x70005b38b13E8978bb573562681F39fd142Fe121;
 
         /// @dev do one off approvals here
@@ -204,8 +203,24 @@ contract MyStrategy is BaseStrategy {
 
     /// @dev utility function to withdraw everything for migration
     function _withdrawAll() internal override {
-        // Withdraws all and claims rewards
-        IERC20StakingRewardsDistribution(stakingContract).exit(address(this));
+        IERC20StakingRewardsDistribution _stakingContract = IERC20StakingRewardsDistribution(
+                stakingContract
+            );
+
+        uint256[] memory rewards = _stakingContract.claimableRewards(
+            address(this)
+        );
+        for (uint256 i; i < rewards.length; i++) {
+            if (rewards[i] > 0) {
+                // Withdraws all and claims rewards
+                _stakingContract.exit(address(this));
+                return;
+            }
+        }
+        // Withdraws all without claiming rewards
+        _stakingContract.withdraw(
+            _stakingContract.stakedTokensOf(address(this))
+        );
     }
 
     /// @dev withdraw the specified amount of want, liquidate from lpComponent to want, paying off any necessary debt for the conversion
